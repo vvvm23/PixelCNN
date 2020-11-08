@@ -31,10 +31,12 @@ class ConditionalCNNBlock(nn.Module):
         self.cconv1 = nn.Conv2d(1, out_channels, 1)
         self.cconv2 = nn.Conv2d(1, out_channels, 1)
 
+        self.bn = nn.BatchNorm2d(out_channels)
+
     def forward(self, x, h):
         inp_gated = torch.tanh(self.mconv1(x)) * torch.sigmoid(self.mconv2(x))
         con_gated = torch.tanh(self.cconv1(h)) * torch.sigmoid(self.cconv2(h))
-        return inp_gated + con_gated
+        return self.bn(inp_gated + con_gated)
 
 class Embedding2d(nn.Module):
     def __init__(self, nb_classes, out_shape):
@@ -45,20 +47,31 @@ class Embedding2d(nn.Module):
         self.emb = nn.Embedding(nb_classes, torch.prod(torch.tensor(out_shape)))
 
     def forward(self, x):
-        return self.emb(x).view(-1, 1, *self.out_shape)
+        return self.emb(x).view(-1, *self.out_shape)
 
 class PixelCNN(nn.Module):
-    def __init__(self):
+    def __init__(self, in_shape, nb_channels, nb_layers, nb_out, nb_classes):
         super().__init__()
+        nb_in = in_shape[0]
 
-    def forward(self, x):
+        self.emb = Embedding2d(nb_classes, in_shape)
+        self.layers = nn.ModuleList()
+
+        self.layers.append(ConditionalCNNBlock('A', nb_in, nb_channels, 7, padding=3))
+        for _ in range(0, nb_layers-1):
+            self.layers.append(ConditionalCNNBlock('B', nb_channels, nb_channels, 7, 1, 3))
+        self.layers.append(nn.Conv2d(nb_channels, nb_out, 1))
+
+    def forward(self, x, h):
+        h = self.emb(h)
+        for l in self.layers:
+            if isinstance(l, ConditionalCNNBlock):
+                x = l(x, h)
+            else:
+                x = l(x)
         return x
 
 if __name__ == "__main__":
-    embedding = Embedding2d(10, (28, 28))
-    cconv = ConditionalCNNBlock('A', 1, 8, 3, padding=1)
-    
-    h = torch.tensor(5).view(1, -1)
-    x = torch.randn(1, 1, 28, 28)
-
-    print(cconv(x, embedding(h)).shape)
+    pixelcnn = PixelCNN((1, 28, 28), 16, 7, 1, 10)
+    x, h = torch.randn(2, 1, 28, 28), torch.tensor([0,0])
+    print(pixelcnn(x,h).shape)
