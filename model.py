@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 """
-    https://github.com/jzbontar/pixelcnn-pytorch/blob/master/main.py
+    https://github.com/tuelwer/conditional-pixelcnn-pytorch
 """
 class MaskedCNN(nn.Conv2d):
     def __init__(self, mask_type, *args, **kwargs):
@@ -21,11 +21,20 @@ class MaskedCNN(nn.Conv2d):
         return super().forward(x)
 
 class ConditionalCNNBlock(nn.Module):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         super().__init__()
+        out_channels = args[2]
 
-    def forward(self, x):
-        return x
+        self.mconv1 = MaskedCNN(*args, **kwargs)
+        self.mconv2 = MaskedCNN(*args, **kwargs)
+
+        self.cconv1 = nn.Conv2d(1, out_channels, 1)
+        self.cconv2 = nn.Conv2d(1, out_channels, 1)
+
+    def forward(self, x, h):
+        inp_gated = torch.tanh(self.mconv1(x)) * torch.sigmoid(self.mconv2(x))
+        con_gated = torch.tanh(self.cconv1(h)) * torch.sigmoid(self.cconv2(h))
+        return inp_gated + con_gated
 
 class Embedding2d(nn.Module):
     def __init__(self, nb_classes, out_shape):
@@ -36,7 +45,6 @@ class Embedding2d(nn.Module):
         self.emb = nn.Embedding(nb_classes, torch.prod(torch.tensor(out_shape)))
 
     def forward(self, x):
-        assert(0 <= x < self.nb_classes)
         return self.emb(x).view(-1, 1, *self.out_shape)
 
 class PixelCNN(nn.Module):
@@ -48,5 +56,9 @@ class PixelCNN(nn.Module):
 
 if __name__ == "__main__":
     embedding = Embedding2d(10, (28, 28))
-    x = torch.tensor(1).view(1, 1)
-    print(embedding(x).shape)
+    cconv = ConditionalCNNBlock('A', 1, 8, 3, padding=1)
+    
+    h = torch.tensor(5).view(1, -1)
+    x = torch.randn(1, 1, 28, 28)
+
+    print(cconv(x, embedding(h)).shape)
