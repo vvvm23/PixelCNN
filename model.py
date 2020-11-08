@@ -20,6 +20,25 @@ class MaskedCNN(nn.Conv2d):
         self.weight.data *= self.mask
         return super().forward(x)
 
+class ConditionalCNNBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return x
+
+class Embedding2d(nn.Module):
+    def __init__(self, nb_classes, out_shape):
+        super().__init__()
+        self.nb_classes = nb_classes
+        self.out_shape = out_shape
+
+        self.emb = nn.Embedding(nb_classes, torch.prod(torch.tensor(out_shape)))
+
+    def forward(self, x):
+        assert(0 <= x < self.nb_classes)
+        return self.emb(x).view(-1, 1, *self.out_shape)
+
 class PixelCNN(nn.Module):
     def __init__(self):
         super().__init__()
@@ -28,6 +47,6 @@ class PixelCNN(nn.Module):
         return x
 
 if __name__ == "__main__":
-    cnn = MaskedCNN('A', 3, 16, 3, stride=1, padding=1)
-    x = torch.randn(1, 3, 8, 8)
-    print(cnn(x).shape)
+    embedding = Embedding2d(10, (28, 28))
+    x = torch.tensor(1).view(1, 1)
+    print(embedding(x).shape)
