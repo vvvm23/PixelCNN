@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 """
     https://github.com/tuelwer/conditional-pixelcnn-pytorch
+    https://arxiv.org/abs/1606.05328
 """
 class MaskedCNN(nn.Conv2d):
     def __init__(self, mask_type, *args, **kwargs):
