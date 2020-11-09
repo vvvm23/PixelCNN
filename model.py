@@ -61,18 +61,21 @@ class PixelCNN(nn.Module):
         self.layers.append(ConditionalCNNBlock('A', nb_in, nb_channels, 7, padding=3))
         for _ in range(0, nb_layers-1):
             self.layers.append(ConditionalCNNBlock('B', nb_channels, nb_channels, 7, 1, 3))
-        self.layers.append(nn.Conv2d(nb_channels, nb_out, 1))
+        self.layers.append(nn.Conv2d(nb_channels, nb_in, 1))
+        self.layers.append(nn.Conv3d(1, nb_out, 1))
 
     def forward(self, x, h):
         h = self.emb(h)
         for l in self.layers:
             if isinstance(l, ConditionalCNNBlock):
                 x = l(x, h)
+            elif isinstance(l, nn.Conv3d):
+                x = l(x.unsqueeze(1))
             else:
                 x = l(x)
         return x
 
 if __name__ == "__main__":
-    pixelcnn = PixelCNN((1, 28, 28), 16, 7, 1, 10)
+    pixelcnn = PixelCNN((1, 28, 28), 16, 7, 256, 10)
     x, h = torch.randn(2, 1, 28, 28), torch.tensor([0,0])
     print(pixelcnn(x,h).shape)
