@@ -26,8 +26,8 @@ print("> Instantiating PixelCNN")
 model = PixelCNN((1,28,28), 16, 5, 256, 10).to(device)
 
 print("> Loading dataset")
-train_dataset = torchvision.datasets.MNIST('data', train=True, download=True, transform=torchvision.transforms.ToTensor())
-test_dataset = torchvision.datasets.MNIST('data', train=False, download=True, transform=torchvision.transforms.ToTensor())
+train_dataset = torchvision.datasets.KMNIST('data', train=True, download=True, transform=torchvision.transforms.ToTensor())
+test_dataset = torchvision.datasets.KMNIST('data', train=False, download=True, transform=torchvision.transforms.ToTensor())
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
@@ -68,7 +68,7 @@ for ei in range(NB_EPOCHS):
             eval_loss += loss.item()
 
             if i == 0:
-                img = torch.cat([x, pred], dim=0)
+                img = torch.cat([x, torch.argmax(pred, dim=1).unsqueeze(1)], dim=0)
                 torchvision.utils.save_image(img, f"samples/pixelcnn-{ei}.png")
 
     print(f"> Training Loss: {train_loss / len(train_loader)}")
