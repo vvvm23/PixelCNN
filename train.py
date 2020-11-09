@@ -13,6 +13,8 @@ BATCH_SIZE = 128
 NB_EPOCHS = 25
 MODEL_SAVING = True
 
+IMAGE_DIM = (3,32,32)
+
 def get_device():
     if TRY_CUDA == False:
         return torch.device('cpu')
@@ -23,11 +25,11 @@ def get_device():
 device = torch.device('cuda' if TRY_CUDA and torch.cuda.is_available() else 'cpu')
 print(f"> Using device {device}")
 print("> Instantiating PixelCNN")
-model = PixelCNN((1,28,28), 16, 5, 256, 10).to(device)
+model = PixelCNN(IMAGE_DIM, 16, 5, 256, 10).to(device)
 
 print("> Loading dataset")
-train_dataset = torchvision.datasets.QMNIST('data', train=True, download=True, transform=torchvision.transforms.ToTensor())
-test_dataset = torchvision.datasets.QMNIST('data', train=False, download=True, transform=torchvision.transforms.ToTensor())
+train_dataset = torchvision.datasets.CIFAR10('data', train=True, download=True, transform=torchvision.transforms.ToTensor())
+test_dataset = torchvision.datasets.CIFAR10('data', train=False, download=True, transform=torchvision.transforms.ToTensor())
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
@@ -61,14 +63,14 @@ for ei in range(NB_EPOCHS):
         for i, (x, h) in enumerate(tqdm(test_loader)):
             optim.zero_grad()
             x, h = x.to(device), h.to(device)
-            target = (x[:,0]*255).long()
+            target = (x*255).long()
 
             pred = model(x, h)
             loss = crit(pred.view(BATCH_SIZE, 256, -1), target.view(BATCH_SIZE, -1))
             eval_loss += loss.item()
 
             if i == 0:
-                img = torch.cat([x, torch.argmax(pred, dim=1)], dim=0)
+                img = torch.cat([target, torch.argmax(pred, dim=1)], dim=0) / 255.0
                 torchvision.utils.save_image(img, f"samples/pixelcnn-{ei}.png")
 
     print(f"> Training Loss: {train_loss / len(train_loader)}")
