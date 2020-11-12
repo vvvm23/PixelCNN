@@ -29,8 +29,8 @@ class ConditionalCNNBlock(nn.Module):
         self.mconv1 = MaskedCNN(*args, **kwargs)
         self.mconv2 = MaskedCNN(*args, **kwargs)
 
-        self.cconv1 = nn.Conv2d(3, out_channels, 1)
-        self.cconv2 = nn.Conv2d(3, out_channels, 1)
+        self.cconv1 = nn.Conv2d(1, out_channels, 1)
+        self.cconv2 = nn.Conv2d(1, out_channels, 1)
 
         self.bn = nn.BatchNorm2d(out_channels)
 

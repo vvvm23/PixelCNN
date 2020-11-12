@@ -13,7 +13,7 @@ BATCH_SIZE = 128
 NB_EPOCHS = 25
 MODEL_SAVING = True
 
-IMAGE_DIM = (3,32,32)
+IMAGE_DIM = (1,28,28)
 
 def get_device():
     if TRY_CUDA == False:
@@ -28,8 +28,8 @@ print("> Instantiating PixelCNN")
 model = PixelCNN(IMAGE_DIM, 16, 5, 256, 10).to(device)
 
 print("> Loading dataset")
-train_dataset = torchvision.datasets.CIFAR10('data', train=True, download=True, transform=torchvision.transforms.ToTensor())
-test_dataset = torchvision.datasets.CIFAR10('data', train=False, download=True, transform=torchvision.transforms.ToTensor())
+train_dataset = torchvision.datasets.QMNIST('data', train=True, download=True, transform=torchvision.transforms.ToTensor())
+test_dataset = torchvision.datasets.QMNIST('data', train=False, download=True, transform=torchvision.transforms.ToTensor())
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
