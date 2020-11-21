@@ -10,10 +10,10 @@ from model import PixelCNN
 
 TRY_CUDA = True
 BATCH_SIZE = 128
-NB_EPOCHS = 25
+NB_EPOCHS = 1000
 MODEL_SAVING = True
 
-IMAGE_DIM = (1,28,28)
+IMAGE_DIM = (3,32,32)
 
 def get_device():
     if TRY_CUDA == False:
@@ -25,16 +25,24 @@ def get_device():
 device = torch.device('cuda' if TRY_CUDA and torch.cuda.is_available() else 'cpu')
 print(f"> Using device {device}")
 print("> Instantiating PixelCNN")
-model = PixelCNN(IMAGE_DIM, 16, 5, 256, 10).to(device)
+model = PixelCNN(IMAGE_DIM, 32, 5, 256, 10).to(device)
 
 print("> Loading dataset")
-train_dataset = torchvision.datasets.QMNIST('data', train=True, download=True, transform=torchvision.transforms.ToTensor())
-test_dataset = torchvision.datasets.QMNIST('data', train=False, download=True, transform=torchvision.transforms.ToTensor())
+train_dataset = torchvision.datasets.CIFAR10('data', train=True, download=True, transform=torchvision.transforms.ToTensor())
+test_dataset = torchvision.datasets.CIFAR10('data', train=False, download=True, transform=torchvision.transforms.ToTensor())
+# train_dataset = torchvision.datasets.ImageFolder('data/pokemon', transform=torchvision.transforms.Compose([
+    # torchvision.transforms.Resize(32),
+    # torchvision.transforms.Grayscale(),
+    # torchvision.transforms.RandomRotation(5),
+    # torchvision.transforms.RandomRotation(5),
+    # torchvision.transforms.RandomVerticalFlip(),
+    # torchvision.transforms.ToTensor()
+    # ]))
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-optim = torch.optim.Adam(model.parameters())
+optim = torch.optim.Adam(model.parameters(), lr=0.001)
 crit = nn.CrossEntropyLoss()
 
 save_id = int(time.time())
@@ -74,11 +82,11 @@ for ei in range(NB_EPOCHS):
                 torchvision.utils.save_image(img, f"samples/pixelcnn-{ei}.png")
 
     print(f"> Training Loss: {train_loss / len(train_loader)}")
-    print(f"> Evaluation Loss: {eval_loss / len(test_loader)}")
+    # print(f"> Evaluation Loss: {eval_loss / len(test_loader)}")
     
     torch.save(model.state_dict(), f"models/{save_id}-{ei}-pixelcnn.pt")
-    if eval_loss / len(test_loader) < best_loss:
-        best_model = copy.deepcopy(model.state_dict())
-        best_loss = eval_loss / len(test_loader)
+    # if eval_loss / len(test_loader) < best_loss:
+        # best_model = copy.deepcopy(model.state_dict())
+        # best_loss = eval_loss / len(test_loader)
 
 torch.save(best_model, f"models/{save_id}-best-pixelcnn.pt")

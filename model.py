@@ -29,8 +29,8 @@ class ConditionalCNNBlock(nn.Module):
         self.mconv1 = MaskedCNN(*args, **kwargs)
         self.mconv2 = MaskedCNN(*args, **kwargs)
 
-        self.cconv1 = nn.Conv2d(1, out_channels, 1)
-        self.cconv2 = nn.Conv2d(1, out_channels, 1)
+        self.cconv1 = nn.Conv2d(3, out_channels, 1)
+        self.cconv2 = nn.Conv2d(3, out_channels, 1)
 
         self.bn = nn.BatchNorm2d(out_channels)
 
@@ -53,26 +53,31 @@ class Embedding2d(nn.Module):
 class PixelCNN(nn.Module):
     def __init__(self, in_shape, nb_channels, nb_layers, nb_out, nb_classes):
         super().__init__()
-        nb_in = in_shape[0]
+        self.nb_in = in_shape[0]
+        self.nb_out = nb_out
+        self.in_shape = in_shape
 
         self.emb = Embedding2d(nb_classes, in_shape)
         self.layers = nn.ModuleList()
 
-        self.layers.append(ConditionalCNNBlock('A', nb_in, nb_channels, 7, padding=3))
+        self.layers.append(ConditionalCNNBlock('A', self.nb_in, nb_channels, 7, padding=3))
         for _ in range(0, nb_layers-1):
             self.layers.append(ConditionalCNNBlock('B', nb_channels, nb_channels, 7, 1, 3))
-        self.layers.append(nn.Conv2d(nb_channels, nb_in, 1))
-        self.layers.append(nn.Conv3d(1, nb_out, 1))
+        self.out = ConditionalCNNBlock('B', nb_channels, self.nb_in*nb_out, 1)
+        # self.layers.append(nn.Conv2d(nb_channels, nb_in, 1))
+        # self.layers.append(nn.Conv3d(1, nb_out, 1))
 
     def forward(self, x, h):
         h = self.emb(h)
         for l in self.layers:
             if isinstance(l, ConditionalCNNBlock):
                 x = l(x, h)
-            elif isinstance(l, nn.Conv3d):
-                x = l(x.unsqueeze(1))
+            # elif isinstance(l, nn.Conv3d):
+                # x = l(x.unsqueeze(1))
             else:
                 x = l(x)
+        x = self.out(x, h)
+        x = x.view(-1, self.nb_out, *self.in_shape)
         return x
 
 if __name__ == "__main__":
